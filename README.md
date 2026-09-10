@@ -68,7 +68,7 @@ require it. Configuration does not press the Bot to test a password.
 Compared on 2026-09-10 with the upstream Home Assistant `dev` SwitchBot config
 flow, manifest and setup code. Uses the same pinned `PySwitchbot==2.7.0`, keeps
 config-entry version 1 and the separate `switchbot_bluetooth_extended` domain.
-The polling coordinator is classified as `local_poll`. This package is a test
+The polling coordinator is classified as `local_polling`. This package is a test
 build, not a claim of compatibility with every Home Assistant release.
 
 Sources:

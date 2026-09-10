@@ -8,7 +8,7 @@
   ],
   "documentation": "https://github.com/29SimonB/switchbot-bluetooth-extended",
   "integration_type": "device",
-  "iot_class": "local_poll",
+  "iot_class": "local_polling",
   "loggers": [
     "switchbot"
   ],
