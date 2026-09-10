@@ -1,6 +1,6 @@
-# Validation — 0.1.1
+# Validation — 0.1.2
 
-- 21 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
+- 23 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
   voluptuous and pytest. Home Assistant framework/Bluetooth APIs were stubbed;
   the advertisement parser and Switchbot device class were real.
 - Covered local and ESPHome-proxy discovery, passive advertisements with a
@@ -25,7 +25,7 @@ Home Assistant's own test suite because they substitute HA modules.
 
 ## Live acceptance check
 
-1. Replace the integration folder and restart HA; verify version 0.1.1 in logs.
+1. Replace the integration folder and restart HA; verify version 0.1.2 in logs.
 2. Leave the Bluetooth integration and ESPHome proxy enabled. Open Extended,
    choose Search for Bots and verify the Bot appears. Confirm once.
 3. Alternatively enter the Bot MAC manually. Verify invalid addresses and
@@ -33,3 +33,8 @@ Home Assistant's own test suite because they substitute HA modules.
 4. Verify battery/settings load and existing mode/hold/strength controls operate.
    Avoid concurrent commands from the native integration during this test.
 5. Restart HA and check the entry/entities retain their identities.
+
+Additional 0.1.2 checks: Reverse availability transitions and rejected writes
+in Press/missing/stale mode, plus allowed writes in Switch mode. Brand PNGs
+were generated, resized and visually inspected. GitHub workflows are prepared
+but have not run remotely; Hassfest has not run locally.

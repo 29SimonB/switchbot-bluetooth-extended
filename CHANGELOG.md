@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — 2026-09-10
+
+- Bundle an original local integration icon and logo.
+- Make Reverse unavailable outside Switch mode and reject reverse writes when
+  mode data is missing, stale or Press. Entity IDs and stored reverse setting remain.
+- Add Git history, regression/Hassfest CI and a tag-triggered draft-release workflow.
+
+
 ## 0.1.1 — 2026-09-10
 
 - Request active scans via Home Assistant before listing discovered Bots.

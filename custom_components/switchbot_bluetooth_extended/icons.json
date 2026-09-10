@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "switch": {
+      "reverse_direction": {
+        "default": "mdi:swap-vertical"
+      }
+    },
+    "select": {
+      "mode": {
+        "default": "mdi:gesture-tap-button"
+      }
+    }
+  }
+}

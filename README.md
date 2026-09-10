@@ -37,7 +37,7 @@ Before publishing, set `documentation` and `issue_tracker` to your actual reposi
 
 ## Development status
 
-Version 0.1.1 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
+Version 0.1.2 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
 
 
 ## Version 0.1.1: discovery and ESPHome proxies
@@ -78,3 +78,39 @@ Sources:
 
 See `VALIDATION.md` for checks and limitations. A live Home Assistant/ESPHome/Bot
 hardware test is still required.
+
+
+## Reverse direction
+
+Reverse only affects Switch mode. In Press mode (or when data is unavailable),
+the entity is unavailable and writes are rejected. It becomes usable again when
+Switch mode is reported. Home Assistant's device page can still show its row;
+this integration does not change the user's entity visibility preferences or
+remove/recreate entities on mode changes. A conditional dashboard card can hide
+that row entirely in Press mode.
+
+## Branding
+
+An original unofficial Bot/plus icon is bundled in the integration's `brand/`
+directory, supported since Home Assistant 2026.3. It is not an official SwitchBot
+logo. After upgrading, restart HA and refresh the browser if the old placeholder
+is cached. Brand files are included in every install ZIP.
+
+## Development and releases
+
+This folder is a Git repository on `main`, with the 0.1.1 baseline tagged.
+Install `requirements-test.txt` in a virtual environment and run `python -m pytest tests -q`. Tests simulate HA; they are not live hardware tests.
+
+1. Create/connect your GitHub repository and push `main`.
+2. Replace manifest documentation/issue URLs with the repository's URLs and add
+   your GitHub username to `codeowners` before public distribution.
+3. Update manifest version and CHANGELOG, run tests, then commit.
+4. Tag that commit, for example `git tag v0.1.2`, and push the tag.
+5. GitHub Actions runs tests and Hassfest, checks tag/version consistency, builds
+   an install ZIP and creates a **draft** GitHub Release. Review and publish it.
+
+`python scripts/build_release.py --tag v0.1.2` builds the same ZIP locally.
+The workflow requires GitHub Actions to be enabled. A private repository can
+use Git version control, but public distribution through HACS needs a public
+repository. No GitHub repository or release is created merely by downloading
+this folder. A HACS default-list submission is not included.

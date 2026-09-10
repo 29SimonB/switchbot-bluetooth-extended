@@ -64,6 +64,14 @@ class SwitchBotReverseSwitch(SwitchBotExtendedEntity, SwitchEntity):
         super().__init__(coordinator, "reverse-direction")
 
     @property
+    def available(self) -> bool:
+        """Reverse only applies when the Bot reports Switch mode."""
+        return super().available and bool(
+            (self.coordinator.data or {}).get("switchMode", False)
+        )
+
+
+    @property
     def is_on(self) -> bool:
         return bool((self.coordinator.data or {}).get("inverseDirection", False))
 

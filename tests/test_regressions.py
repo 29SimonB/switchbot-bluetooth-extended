@@ -249,7 +249,7 @@ def test_coordinator_read_with_real_parser(env, monkeypatch):
 def test_metadata_translation_keys():
     p=ROOT/'custom_components/switchbot_bluetooth_extended'
     m=json.loads((p/'manifest.json').read_text())
-    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.1'
+    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.2'
     assert m['requirements']==['PySwitchbot==2.7.0'] and m['config_flow'] is True
     def keys(d, prefix=''):
         return {prefix+k for k in d} | set().union(*(keys(v,prefix+k+'.') for k,v in d.items() if isinstance(v,dict)))
@@ -267,3 +267,58 @@ def test_failed_basic_read_does_not_report_success(env, monkeypatch):
         with pytest.raises(RuntimeError, match='no basic settings'):
             await c._async_update_data()
     run(scenario())
+
+
+def test_reverse_writes_only_in_switch_mode(env, monkeypatch):
+    async def scenario():
+        h, _ = env
+        register(h, info())
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
+        c.last_update_success = True
+        write = AsyncMock()
+        monkeypatch.setattr(switchbot.Switchbot, 'set_switch_mode', write)
+        c.async_refresh_after_command = AsyncMock()
+        for data in (None, {}, {'switchMode': False}):
+            c.data = data
+            with pytest.raises(RuntimeError, match='only available'):
+                await c.async_set_inverse(True)
+        write.assert_not_awaited()
+        c.data = {'switchMode': True, 'strength': 77}
+        await c.async_set_inverse(True)
+        write.assert_awaited_once_with(switch_mode=True, strength=77, inverse=True)
+        c.last_update_success = False
+        with pytest.raises(RuntimeError, match='only available'):
+            await c.async_set_inverse(False)
+    run(scenario())
+
+
+def test_reverse_entity_availability_transitions(env, monkeypatch):
+    switch_module = module('homeassistant.components.switch')
+    switch_module.SwitchDeviceClass = SimpleNamespace(SWITCH='switch')
+    switch_module.SwitchEntity = type('SwitchEntity', (), {})
+    const.EntityCategory = SimpleNamespace(CONFIG='config')
+    platform = module('homeassistant.helpers.entity_platform')
+    platform.AddConfigEntryEntitiesCallback = object
+    sys.modules['custom_components.switchbot_bluetooth_extended'].SwitchBotExtendedConfigEntry = object
+    entity = module('custom_components.switchbot_bluetooth_extended.entity')
+
+    class Base:
+        def __init__(self, coordinator, suffix):
+            self.coordinator = coordinator
+
+        @property
+        def available(self):
+            return self.coordinator.last_update_success
+
+    entity.SwitchBotExtendedEntity = Base
+    switches = importlib.import_module('custom_components.switchbot_bluetooth_extended.switch')
+    c = SimpleNamespace(data={'switchMode': False}, last_update_success=True)
+    reverse = switches.SwitchBotReverseSwitch(c)
+    assert not reverse.available
+    c.data['switchMode'] = True
+    assert reverse.available
+    c.last_update_success = False
+    assert not reverse.available
+    c.last_update_success = True
+    c.data = {}
+    assert not reverse.available

@@ -114,6 +114,8 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.async_refresh_after_command()
 
     async def async_set_inverse(self, inverse: bool) -> None:
+        if not self.last_update_success or not self._setting("switchMode", False):
+            raise HomeAssistantError("Reverse direction is only available in Switch mode")
         device = self._ensure_device()
         await device.set_switch_mode(
             switch_mode=bool(self._setting("switchMode", False)),
