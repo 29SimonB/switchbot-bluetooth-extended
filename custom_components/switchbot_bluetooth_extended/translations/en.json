@@ -1,0 +1,75 @@
+{
+  "title": "SwitchBot Bluetooth Extended",
+  "config": {
+    "step": {
+      "confirm": {
+        "title": "Add {name}",
+        "description": "Add {name} ({address}) through Home Assistant Bluetooth? Enter the device password if configured in the SwitchBot app; otherwise leave it empty.",
+        "data": {
+          "password": "Bot password"
+        }
+      },
+      "user": {
+        "title": "SwitchBot Bluetooth Extended",
+        "menu_options": {
+          "select_device": "Search for Bots",
+          "manual": "Enter BLE MAC manually"
+        }
+      },
+      "select_device": {
+        "title": "Select a SwitchBot Bot",
+        "data": {
+          "address": "Bot"
+        }
+      },
+      "manual": {
+        "title": "Add Bot manually",
+        "description": "If no Bot is offered, enter its BLE MAC (e.g. EC:6F:03:C6:38:19). Home Assistant must be able to connect through a local adapter or an ESPHome proxy with active Bluetooth connections.",
+        "data": {
+          "address": "BLE MAC address"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This Bot is already configured.",
+      "not_supported": "The discovered Bluetooth device is not a supported SwitchBot Bot.",
+      "not_connectable": "Home Assistant has no connectable Bluetooth route. Check range, proxy connectivity and active Bluetooth connections on the ESPHome proxy, then retry."
+    },
+    "error": {
+      "invalid_address": "Invalid BLE MAC address. Example: EC:6F:03:C6:38:19.",
+      "not_supported": "This address belongs to a device other than a SwitchBot Bot.",
+      "not_connectable": "Home Assistant has no connectable Bluetooth route. Check range, proxy connectivity and active Bluetooth connections on the ESPHome proxy, then retry."
+    }
+  },
+  "entity": {
+    "select": {
+      "mode": {
+        "name": "Mode"
+      }
+    },
+    "number": {
+      "strength": {
+        "name": "Strength"
+      },
+      "press_hold_time": {
+        "name": "Press-hold time"
+      }
+    },
+    "switch": {
+      "reverse_direction": {
+        "name": "Reverse on/off directions"
+      }
+    },
+    "sensor": {
+      "battery": {
+        "name": "Battery"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "bluetooth_signal": {
+        "name": "Bluetooth signal"
+      }
+    }
+  }
+}

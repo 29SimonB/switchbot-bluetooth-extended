@@ -1,0 +1,75 @@
+{
+  "title": "SwitchBot Bluetooth Extended",
+  "config": {
+    "step": {
+      "confirm": {
+        "title": "{name} hinzufügen",
+        "description": "{name} ({address}) lokal über Home Assistants Bluetooth-Infrastruktur hinzufügen? Falls in der SwitchBot-App ein Gerätepasswort gesetzt ist, gib es hier ein. Sonst leer lassen.",
+        "data": {
+          "password": "Bot-Passwort"
+        }
+      },
+      "user": {
+        "title": "SwitchBot Bluetooth Extended",
+        "menu_options": {
+          "select_device": "Bots suchen",
+          "manual": "BLE-MAC manuell eingeben"
+        }
+      },
+      "select_device": {
+        "title": "SwitchBot Bot auswählen",
+        "data": {
+          "address": "Bot"
+        }
+      },
+      "manual": {
+        "title": "Bot manuell hinzufügen",
+        "description": "Falls kein Bot angeboten wird, gib seine BLE-MAC ein (z. B. EC:6F:03:C6:38:19). Der Bot muss für Home Assistant über einen lokalen Adapter oder einen ESPHome-Proxy mit aktiven Bluetooth-Verbindungen erreichbar sein.",
+        "data": {
+          "address": "BLE-MAC-Adresse"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Bot ist bereits eingerichtet.",
+      "not_supported": "Das gefundene Bluetooth-Gerät ist kein unterstützter SwitchBot Bot.",
+      "not_connectable": "Home Assistant findet keinen verbindungsfähigen Bluetooth-Pfad. Prüfe Reichweite, Proxy-Verbindung und aktive Bluetooth-Verbindungen am ESPHome-Proxy und versuche es erneut."
+    },
+    "error": {
+      "invalid_address": "Ungültige BLE-MAC-Adresse. Beispiel: EC:6F:03:C6:38:19.",
+      "not_supported": "Diese Adresse gehört nicht zu einem SwitchBot Bot.",
+      "not_connectable": "Home Assistant findet keinen verbindungsfähigen Bluetooth-Pfad. Prüfe Reichweite, Proxy-Verbindung und aktive Bluetooth-Verbindungen am ESPHome-Proxy und versuche es erneut."
+    }
+  },
+  "entity": {
+    "select": {
+      "mode": {
+        "name": "Modus"
+      }
+    },
+    "number": {
+      "strength": {
+        "name": "Betätigungsstärke"
+      },
+      "press_hold_time": {
+        "name": "Haltezeit"
+      }
+    },
+    "switch": {
+      "reverse_direction": {
+        "name": "Ein/Aus-Richtung umkehren"
+      }
+    },
+    "sensor": {
+      "battery": {
+        "name": "Batterie"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "bluetooth_signal": {
+        "name": "Bluetooth-Signal"
+      }
+    }
+  }
+}
