@@ -249,7 +249,7 @@ def test_coordinator_read_with_real_parser(env, monkeypatch):
 def test_metadata_translation_keys():
     p=ROOT/'custom_components/switchbot_bluetooth_extended'
     m=json.loads((p/'manifest.json').read_text())
-    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.2'
+    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.3'
     assert m['requirements']==['PySwitchbot==2.7.0'] and m['config_flow'] is True
     def keys(d, prefix=''):
         return {prefix+k for k in d} | set().union(*(keys(v,prefix+k+'.') for k,v in d.items() if isinstance(v,dict)))
@@ -322,3 +322,60 @@ def test_reverse_entity_availability_transitions(env, monkeypatch):
     c.last_update_success = True
     c.data = {}
     assert not reverse.available
+
+
+@pytest.mark.parametrize('command_state', [True, False])
+def test_command_state_wins_over_stale_advertisement(env, monkeypatch, command_state):
+    async def scenario():
+        h, _ = env
+        register(h, info())
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
+        device = c._ensure_device()
+        # A real PySwitchbot instance with a successful command-state override,
+        # while HA still has the advertisement from before the command.
+        device._client = SimpleNamespace(is_connected=True)
+        device._override_state({'isOn': command_state})
+        monkeypatch.setattr(switchbot.Switchbot, 'get_basic_info', AsyncMock(return_value={'switchMode': True}))
+        result = await c._async_update_data()
+        assert result['isOn'] is command_state
+        # Once disconnected, a new advertisement must be authoritative again.
+        device._client = None
+        result = await c._async_update_data()
+        parsed = switchbot.parse_advertisement_data(h.cache[True][0].device, h.cache[True][0].advertisement)
+        assert result['isOn'] == parsed.data['data']['isOn']
+    run(scenario())
+
+
+@pytest.mark.parametrize('cached_mode, actual_mode, requested, expected', [
+    (False, True, True, 'turn_on'),
+    (False, True, False, 'turn_off'),
+    (True, False, True, 'press'),
+    (True, False, False, 'press'),
+])
+def test_control_uses_fresh_mode(env, monkeypatch, cached_mode, actual_mode, requested, expected):
+    async def scenario():
+        h, _ = env
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
+        c.data = {'switchMode': cached_mode}
+        device = SimpleNamespace(get_basic_info=AsyncMock(return_value={'switchMode': actual_mode}),
+            turn_on=AsyncMock(return_value=True), turn_off=AsyncMock(return_value=True), press=AsyncMock(return_value=True))
+        monkeypatch.setattr(c, '_ensure_device', lambda: device)
+        c.async_refresh_after_command = AsyncMock()
+        await c._async_control(requested)
+        for action in ('turn_on', 'turn_off', 'press'):
+            assert getattr(device, action).await_count == int(action == expected)
+    run(scenario())
+
+
+@pytest.mark.parametrize('basic', [None, {}, {'battery': 90}])
+def test_unknown_mode_never_moves_bot(env, monkeypatch, basic):
+    async def scenario():
+        h, _ = env
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
+        device = SimpleNamespace(get_basic_info=AsyncMock(return_value=basic), press=AsyncMock(), turn_on=AsyncMock(), turn_off=AsyncMock())
+        monkeypatch.setattr(c, '_ensure_device', lambda: device)
+        with pytest.raises(RuntimeError, match='no movement command'):
+            await c.async_turn_on()
+        for action in ('turn_on', 'turn_off', 'press'):
+            getattr(device, action).assert_not_awaited()
+    run(scenario())

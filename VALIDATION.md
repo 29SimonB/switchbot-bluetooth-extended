@@ -1,6 +1,6 @@
-# Validation — 0.1.2
+# Validation — 0.1.3
 
-- 23 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
+- 32 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
   voluptuous and pytest. Home Assistant framework/Bluetooth APIs were stubbed;
   the advertisement parser and Switchbot device class were real.
 - Covered local and ESPHome-proxy discovery, passive advertisements with a
@@ -38,3 +38,6 @@ Additional 0.1.2 checks: Reverse availability transitions and rejected writes
 in Press/missing/stale mode, plus allowed writes in Switch mode. Brand PNGs
 were generated, resized and visually inspected. GitHub workflows are prepared
 but have not run remotely; Hassfest has not run locally.
+
+0.1.3 adds command-state and fresh-mode regression tests. Physical return
+movement is not yet verified fixed on hardware.

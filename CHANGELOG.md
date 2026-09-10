@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.3 — 2026-09-10
+
+- Read the current Bot mode before each on/off action; do not fall back to Press
+  when mode is unknown. Log the selected action at debug level.
+- Physical return movement reported by the user still requires a live retest.
+
+- Read on/off state through PySwitchbot instead of raw cached advertisements,
+  preserving its protection against stale state immediately after commands.
+- Add regression coverage for on/off overrides and subsequent advertisement updates.
+
+
 ## 0.1.2 — 2026-09-10
 
 - Bundle an original local integration icon and logo.

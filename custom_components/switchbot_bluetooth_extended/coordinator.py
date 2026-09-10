@@ -84,6 +84,9 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not basic:
                 raise UpdateFailed("Bot returned no basic settings; check connectivity and password")
             data.update(basic)
+            # PySwitchbot protects command state from stale advertisements while
+            # connected. Do not bypass that protection with raw cached isOn.
+            data["isOn"] = device.is_on()
             return data
         except Exception as err:
             raise UpdateFailed(str(err)) from err
@@ -129,18 +132,24 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await device.set_long_press(duration=seconds)
         await self.async_refresh_after_command()
 
-    async def async_turn_on(self) -> None:
+    async def _async_control(self, turn_on: bool) -> None:
+        """Choose the action from freshly read device settings, not old HA state."""
         device = self._ensure_device()
-        if bool(self._setting("switchMode", False)):
-            await device.turn_on()
-        else:
-            await device.press()
+        basic = await device.get_basic_info()
+        if not basic or not isinstance(basic.get("switchMode"), bool):
+            raise HomeAssistantError("Cannot read Bot mode; no movement command sent")
+        switch_mode = basic["switchMode"]
+        action = ("turn_on" if turn_on else "turn_off") if switch_mode else "press"
+        _LOGGER.debug(
+            "Bot %s: requested=%s, device_switch_mode=%s, action=%s",
+            self.address, "on" if turn_on else "off", switch_mode, action,
+        )
+        if not await getattr(device, action)():
+            raise HomeAssistantError(f"Bot command {action} failed")
         await self.async_refresh_after_command()
 
+    async def async_turn_on(self) -> None:
+        await self._async_control(True)
+
     async def async_turn_off(self) -> None:
-        device = self._ensure_device()
-        if bool(self._setting("switchMode", False)):
-            await device.turn_off()
-        else:
-            await device.press()
-        await self.async_refresh_after_command()
+        await self._async_control(False)
