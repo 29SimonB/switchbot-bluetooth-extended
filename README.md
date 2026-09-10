@@ -33,7 +33,7 @@ This integration intentionally supports **SwitchBot Bot only**. It uses `PySwitc
 
 ## Publishing checklist
 
-Before publishing, set `documentation` and `issue_tracker` to your actual repository URLs and add your GitHub handle to `codeowners`. The documentation link currently points to upstream Bluetooth guidance, not documentation for these extra entities.
+Repository and issue tracker: https://github.com/29SimonB/switchbot-bluetooth-extended. Maintainer: @29SimonB.
 
 ## Development status
 
@@ -101,9 +101,8 @@ is cached. Brand files are included in every install ZIP.
 This folder is a Git repository on `main`, with the 0.1.1 baseline tagged.
 Install `requirements-test.txt` in a virtual environment and run `python -m pytest tests -q`. Tests simulate HA; they are not live hardware tests.
 
-1. Create/connect your GitHub repository and push `main`.
-2. Replace manifest documentation/issue URLs with the repository's URLs and add
-   your GitHub username to `codeowners` before public distribution.
+1. Push `main` to https://github.com/29SimonB/switchbot-bluetooth-extended.
+2. Check that the GitHub Actions checks pass.
 3. Update manifest version and CHANGELOG, run tests, then commit.
 4. Tag that commit, for example `git tag v0.1.2`, and push the tag.
 5. GitHub Actions runs tests and Hassfest, checks tag/version consistency, builds

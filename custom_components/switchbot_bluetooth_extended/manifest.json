@@ -6,7 +6,7 @@
   "dependencies": [
     "bluetooth_adapters"
   ],
-  "documentation": "https://www.home-assistant.io/integrations/switchbot",
+  "documentation": "https://github.com/29SimonB/switchbot-bluetooth-extended",
   "integration_type": "device",
   "iot_class": "local_poll",
   "loggers": [
@@ -41,5 +41,8 @@
       "manufacturer_id": 741
     }
   ],
-  "codeowners": []
+  "codeowners": [
+    "@29SimonB"
+  ],
+  "issue_tracker": "https://github.com/29SimonB/switchbot-bluetooth-extended/issues"
 }
