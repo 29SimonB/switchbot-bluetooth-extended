@@ -47,6 +47,7 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
         self._address: str | None = None
         self._bots: dict[str, str] = {}
         self._encrypted = False
+        self._manual_unidentified = False
 
     async def _async_set_address(self, address: str) -> None:
         await self.async_set_unique_id(_uid(address))
@@ -70,11 +71,13 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_confirm()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="user", menu_options=["select_device", "manual"])
+        return await self.async_step_select_device(user_input)
 
     async def async_step_select_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             address = user_input[CONF_ADDRESS]
+            if address == "manual":
+                return await self.async_step_manual()
             if address not in self._bots:
                 return self.async_abort(reason="not_supported")
             await self._async_set_address(address)
@@ -98,9 +101,11 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._bots[info.address] = f"Bot {_short(info.address)} ({info.address})"
         if not self._bots:
             return await self.async_step_manual()
+        if len(self._bots) == 1:
+            return await self.async_step_select_device({CONF_ADDRESS: next(iter(self._bots))})
         return self.async_show_form(
             step_id="select_device",
-            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In(self._bots)}),
+            data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In({**self._bots, "manual": "Enter BLE MAC manually / BLE-MAC manuell eingeben"})}),
         )
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -121,6 +126,7 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
                 elif bluetooth.async_ble_device_from_address(self.hass, address, connectable=True) is None:
                     errors["base"] = "not_connectable"
                 else:
+                    self._manual_unidentified = parsed is None
                     self._encrypted = bool(parsed and parsed.data.get("isEncrypted"))
                     return await self.async_step_confirm()
         return self.async_show_form(
@@ -132,6 +138,8 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         assert self._address is not None
         name = f"Bot {_short(self._address)}"
+        if self._encrypted or self._manual_unidentified:
+            return await self.async_step_password(user_input)
         if user_input is not None:
             # Recheck duplicates at submission, retaining 0.1.0 entry data/IDs.
             self._abort_if_unique_id_configured()
@@ -139,9 +147,22 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
                 title=name,
                 data={CONF_ADDRESS: self._address, CONF_NAME: name, **user_input},
             )
-        password_field = vol.Required(CONF_PASSWORD) if self._encrypted else vol.Optional(CONF_PASSWORD)
+        self._set_confirm_only()
         return self.async_show_form(
             step_id="confirm",
-            data_schema=vol.Schema({password_field: str}),
+            data_schema=vol.Schema({}),
             description_placeholders={"name": name, "address": self._address},
         )
+
+    async def async_step_password(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Ask only for encrypted or unidentified manually entered Bots."""
+        assert self._address is not None
+        name = f"Bot {_short(self._address)}"
+        if user_input is not None:
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(title=name, data={
+                CONF_ADDRESS: self._address, CONF_NAME: name, **user_input,
+            })
+        field = vol.Required(CONF_PASSWORD) if self._encrypted else vol.Optional(CONF_PASSWORD)
+        return self.async_show_form(step_id="password", data_schema=vol.Schema({field: str}),
+            description_placeholders={"name": name, "address": self._address})

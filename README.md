@@ -21,7 +21,7 @@ Experimental Home Assistant custom integration for **SwitchBot Bot / WoHand** ov
 2. Restart Home Assistant.
 3. Remove/disable the same Bot from the built-in **SwitchBot Bluetooth** integration first, otherwise Home Assistant will have two integrations trying to represent/control the same physical device.
 4. Go to **Settings → Devices & services → Add integration → SwitchBot Bluetooth Extended**.
-5. Choose **Search for Bots**, select the Bot, and confirm. Alternatively choose **Enter BLE MAC manually**. An empty search automatically opens manual entry.
+5. Discovery starts immediately. Confirm a single discovered Bot, or select one when several are found. An empty search opens manual MAC entry; the device list also offers manual entry. Password-free Bots use a simple confirmation. Name and area assignment are handled by Home Assistant after setup.
 
 ## Notes
 
@@ -37,7 +37,7 @@ Repository and issue tracker: https://github.com/29SimonB/switchbot-bluetooth-ex
 
 ## Development status
 
-Version 0.1.2 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
+Version 0.1.4 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
 
 
 ## Version 0.1.1: discovery and ESPHome proxies
@@ -91,7 +91,7 @@ that row entirely in Press mode.
 
 ## Branding
 
-An original unofficial Bot/plus icon is bundled in the integration's `brand/`
+The maintainer-provided S/plus icon is bundled in the integration's `brand/`
 directory, supported since Home Assistant 2026.3. It is not an official SwitchBot
 logo. After upgrading, restart HA and refresh the browser if the old placeholder
 is cached. Brand files are included in every install ZIP.
@@ -104,12 +104,20 @@ Install `requirements-test.txt` in a virtual environment and run `python -m pyte
 1. Push `main` to https://github.com/29SimonB/switchbot-bluetooth-extended.
 2. Check that the GitHub Actions checks pass.
 3. Update manifest version and CHANGELOG, run tests, then commit.
-4. Tag that commit, for example `git tag v0.1.2`, and push the tag.
+4. Tag that commit, for example `git tag v0.1.4`, and push the tag.
 5. GitHub Actions runs tests and Hassfest, checks tag/version consistency, builds
    an install ZIP and creates a **draft** GitHub Release. Review and publish it.
 
-`python scripts/build_release.py --tag v0.1.2` builds the same ZIP locally.
+`python scripts/build_release.py --tag v0.1.4` builds the same ZIP locally.
 The workflow requires GitHub Actions to be enabled. A private repository can
 use Git version control, but public distribution through HACS needs a public
 repository. No GitHub repository or release is created merely by downloading
 this folder. A HACS default-list submission is not included.
+
+## State updates in 0.1.4
+
+The switch publishes a provisional requested state while a command runs.
+A failed command restores the previous displayed state and reports the error.
+Successful commands publish PySwitchbot state without a redundant refresh.
+Rapid clicks are serialized. No extra movement command is sent to stabilize
+the UI. Changes made outside HA still use the existing polling interval.

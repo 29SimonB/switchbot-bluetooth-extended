@@ -4,10 +4,7 @@
     "step": {
       "confirm": {
         "title": "Add {name}",
-        "description": "Add {name} ({address}) through Home Assistant Bluetooth? Enter the device password if configured in the SwitchBot app; otherwise leave it empty.",
-        "data": {
-          "password": "Bot password"
-        }
+        "description": "Do you want to set up {name} ({address})?"
       },
       "user": {
         "title": "SwitchBot Bluetooth Extended",
@@ -27,6 +24,13 @@
         "description": "If no Bot is offered, enter its BLE MAC (e.g. EC:6F:03:C6:38:19). Home Assistant must be able to connect through a local adapter or an ESPHome proxy with active Bluetooth connections.",
         "data": {
           "address": "BLE MAC address"
+        }
+      },
+      "password": {
+        "title": "Add {name}",
+        "description": "Add {name} ({address}) through Home Assistant Bluetooth? Enter the device password if configured in the SwitchBot app; otherwise leave it empty.",
+        "data": {
+          "password": "Bot password"
         }
       }
     },

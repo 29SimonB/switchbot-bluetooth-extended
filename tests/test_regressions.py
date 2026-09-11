@@ -40,6 +40,9 @@ class ConfigFlow:
         if self.unique_id in self.hass.ids:
             raise Abort('already_configured')
 
+    def _set_confirm_only(self):
+        pass
+
     def _async_current_ids(self, **kwargs):
         return self.hass.ids
 
@@ -80,6 +83,9 @@ class Coordinator:
     def __init__(self, hass, *args, **kwargs):
         self.hass = hass
         self.data = None
+
+    def async_set_updated_data(self, data):
+        self.data = data
 
 
 update.DataUpdateCoordinator = Coordinator
@@ -130,8 +136,8 @@ def test_discovery_routes(env, source):
     adv = info(source=source)
     register(h, adv)
     result = run(f.async_step_select_device())
-    assert result['step_id'] == 'select_device'
-    assert result['data_schema']({'address': ADDRESS}) == {'address': ADDRESS}
+    assert result['step_id'] == 'confirm'
+    assert result['data_schema']({}) == {}
     bt.async_request_active_scan.assert_awaited_once_with(h)
     assert run(f.async_step_select_device({'address': ADDRESS}))['step_id'] == 'confirm'
     assert run(f.async_step_confirm({}))['data'] == {'address': ADDRESS, 'name': 'Bot 3819'}
@@ -143,7 +149,7 @@ def test_passive_advertisement_other_connectable_route(env):
     adv = info(connectable=False)
     register(h, adv)
     assert run(f.async_step_bluetooth(adv))['step_id'] == 'confirm'
-    assert run(f.async_step_select_device())['step_id'] == 'select_device'
+    assert run(f.async_step_select_device())['step_id'] == 'confirm'
 
 
 def test_passive_only_rejected(env):
@@ -158,14 +164,14 @@ def test_passive_only_rejected(env):
 def test_empty_search_fallback_and_menu(env):
     h, f = env
     assert run(f.async_step_select_device())['step_id'] == 'manual'
-    assert run(f.async_step_user())['menu_options'] == ['select_device', 'manual']
+    assert run(f.async_step_user())['step_id'] == 'manual'
 
 
 @pytest.mark.parametrize('address', [' ec:6f:03:c6:38:19 ', 'ec-6f-03-c6-38-19', 'ec6f03c63819'])
 def test_manual_normalization_without_parsed_advertisement(env, address):
     h, f = env
     h.routes[ADDRESS] = info().device
-    assert run(f.async_step_manual({'address': address}))['step_id'] == 'confirm'
+    assert run(f.async_step_manual({'address': address}))['step_id'] == 'password'
     assert run(f.async_step_confirm({}))['data']['address'] == ADDRESS
 
 
@@ -249,7 +255,7 @@ def test_coordinator_read_with_real_parser(env, monkeypatch):
 def test_metadata_translation_keys():
     p=ROOT/'custom_components/switchbot_bluetooth_extended'
     m=json.loads((p/'manifest.json').read_text())
-    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.3'
+    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.4'
     assert m['requirements']==['PySwitchbot==2.7.0'] and m['config_flow'] is True
     def keys(d, prefix=''):
         return {prefix+k for k in d} | set().union(*(keys(v,prefix+k+'.') for k,v in d.items() if isinstance(v,dict)))
@@ -358,7 +364,7 @@ def test_control_uses_fresh_mode(env, monkeypatch, cached_mode, actual_mode, req
         c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
         c.data = {'switchMode': cached_mode}
         device = SimpleNamespace(get_basic_info=AsyncMock(return_value={'switchMode': actual_mode}),
-            turn_on=AsyncMock(return_value=True), turn_off=AsyncMock(return_value=True), press=AsyncMock(return_value=True))
+            turn_on=AsyncMock(return_value=True), turn_off=AsyncMock(return_value=True), press=AsyncMock(return_value=True), is_on=lambda: requested)
         monkeypatch.setattr(c, '_ensure_device', lambda: device)
         c.async_refresh_after_command = AsyncMock()
         await c._async_control(requested)
@@ -379,3 +385,41 @@ def test_unknown_mode_never_moves_bot(env, monkeypatch, basic):
         for action in ('turn_on', 'turn_off', 'press'):
             getattr(device, action).assert_not_awaited()
     run(scenario())
+
+
+@pytest.mark.parametrize('target', [True, False])
+@pytest.mark.parametrize('fail', [True, False])
+def test_ui_pending_state_does_not_bounce(env, monkeypatch, target, fail):
+    test_reverse_entity_availability_transitions(env, monkeypatch)
+    switches = importlib.import_module('custom_components.switchbot_bluetooth_extended.switch')
+    async def scenario():
+        c = SimpleNamespace(data={'switchMode': True, 'isOn': not target}, last_update_success=True)
+        entity = switches.SwitchBotControlSwitch(c)
+        states = []
+        entity.async_write_ha_state = lambda: states.append(entity.is_on)
+        async def command():
+            await asyncio.sleep(0)
+            # An intermediate coordinator notification still contains old data.
+            entity.async_write_ha_state()
+            if fail:
+                raise RuntimeError('BLE command failed')
+            c.data['isOn'] = target
+        c.async_turn_on = command
+        c.async_turn_off = command
+        if fail:
+            with pytest.raises(RuntimeError):
+                await entity._async_control(target)
+        else:
+            await entity._async_control(target)
+        assert states == [target, target, not target if fail else target]
+        assert entity._pending_on is None
+    run(scenario())
+
+
+def test_multiple_bots_and_manual_choice(env):
+    h, f = env
+    register(h, info())
+    register(h, info(address='AA:BB:CC:DD:EE:99'))
+    result = run(f.async_step_user())
+    assert result['step_id'] == 'select_device'
+    assert run(f.async_step_select_device({'address': 'manual'}))['step_id'] == 'manual'

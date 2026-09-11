@@ -146,7 +146,11 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         if not await getattr(device, action)():
             raise HomeAssistantError(f"Bot command {action} failed")
-        await self.async_refresh_after_command()
+        # PySwitchbot already reads basic settings after each operation. Publish
+        # its protected state now instead of awaiting another cached refresh.
+        self.async_set_updated_data({
+            **(self.data or {}), **basic, "isOn": device.is_on(),
+        })
 
     async def async_turn_on(self) -> None:
         await self._async_control(True)

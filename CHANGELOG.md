@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 — 2026-09-11
+
+- Show pending switch state during commands, roll back on failure and serialize rapid clicks.
+- Publish PySwitchbot command state without a redundant post-command read.
+- Start setup with discovery, auto-select a sole Bot and show password only when needed.
+- Preserve manual MAC setup and use the user-supplied updated brand images.
+
+
 ## 0.1.3 — 2026-09-10
 
 - Read the current Bot mode before each on/off action; do not fall back to Press
