@@ -37,7 +37,8 @@
     "abort": {
       "already_configured": "This Bot is already configured.",
       "not_supported": "The discovered Bluetooth device is not a supported SwitchBot Bot.",
-      "not_connectable": "Home Assistant has no connectable Bluetooth route. Check range, proxy connectivity and active Bluetooth connections on the ESPHome proxy, then retry."
+      "not_connectable": "Home Assistant has no connectable Bluetooth route. Check range, proxy connectivity and active Bluetooth connections on the ESPHome proxy, then retry.",
+      "already_in_progress": "Setup for this Bot is already in progress. Open its existing entry under Discovered."
     },
     "error": {
       "invalid_address": "Invalid BLE MAC address. Example: EC:6F:03:C6:38:19.",

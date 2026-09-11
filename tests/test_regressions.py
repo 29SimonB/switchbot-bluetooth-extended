@@ -33,7 +33,9 @@ class ConfigFlow:
     def __init_subclass__(cls, **kwargs):
         pass
 
-    async def async_set_unique_id(self, value):
+    async def async_set_unique_id(self, value, *, raise_on_progress=True):
+        if raise_on_progress and value in getattr(self.hass, 'pending_ids', set()):
+            raise Abort('already_in_progress')
         self.unique_id = value
 
     def _abort_if_unique_id_configured(self):
@@ -255,7 +257,7 @@ def test_coordinator_read_with_real_parser(env, monkeypatch):
 def test_metadata_translation_keys():
     p=ROOT/'custom_components/switchbot_bluetooth_extended'
     m=json.loads((p/'manifest.json').read_text())
-    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.4'
+    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.5'
     assert m['requirements']==['PySwitchbot==2.7.0'] and m['config_flow'] is True
     def keys(d, prefix=''):
         return {prefix+k for k in d} | set().union(*(keys(v,prefix+k+'.') for k,v in d.items() if isinstance(v,dict)))
@@ -423,3 +425,29 @@ def test_multiple_bots_and_manual_choice(env):
     result = run(f.async_step_user())
     assert result['step_id'] == 'select_device'
     assert run(f.async_step_select_device({'address': 'manual'}))['step_id'] == 'manual'
+
+
+@pytest.mark.parametrize('manual', [False, True])
+def test_explicit_setup_with_existing_discovery(env, manual):
+    h, f = env
+    register(h, info())
+    h.pending_ids = {'ec6f03c63819'}
+    result = run(f.async_step_manual({'address': ADDRESS}) if manual else f.async_step_user())
+    assert result['step_id'] == 'confirm'
+    assert run(f.async_step_confirm({}))['type'] == 'create_entry'
+
+
+def test_duplicate_discovery_still_aborts(env):
+    h, f = env
+    register(h, info())
+    h.pending_ids = {'ec6f03c63819'}
+    with pytest.raises(Abort, match='already_in_progress'):
+        run(f.async_step_bluetooth(info()))
+
+
+def test_existing_entry_still_blocks_explicit_setup(env):
+    h, f = env
+    register(h, info())
+    h.ids = h.pending_ids = {'ec6f03c63819'}
+    with pytest.raises(Abort, match='already_configured'):
+        run(f.async_step_manual({'address': ADDRESS}))

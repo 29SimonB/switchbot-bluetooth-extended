@@ -49,8 +49,10 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
         self._encrypted = False
         self._manual_unidentified = False
 
-    async def _async_set_address(self, address: str) -> None:
-        await self.async_set_unique_id(_uid(address))
+    async def _async_set_address(self, address: str, *, raise_on_progress: bool = False) -> None:
+        # Like Core SwitchBot, an explicit selection may continue while a
+        # discovery notification exists. HA removes sibling flows on completion.
+        await self.async_set_unique_id(_uid(address), raise_on_progress=raise_on_progress)
         self._abort_if_unique_id_configured()
         self._address = address
 
@@ -65,7 +67,7 @@ class SwitchBotExtendedConfigFlow(ConfigFlow, domain=DOMAIN):
             self.hass, discovery_info.address.upper(), connectable=True
         ) is None:
             return self.async_abort(reason="not_connectable")
-        await self._async_set_address(discovery_info.address)
+        await self._async_set_address(discovery_info.address, raise_on_progress=True)
         self._encrypted = bool(parsed.data.get("isEncrypted"))
         self.context["title_placeholders"] = {"name": f"Bot {_short(discovery_info.address)}"}
         return await self.async_step_confirm()

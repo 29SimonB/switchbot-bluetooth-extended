@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 — 2026-09-11
+
+- Allow explicit Bot selection while an automatic discovery flow exists, matching Core SwitchBot.
+- Keep duplicate discovery and configured-entry protections.
+- Translate the already-in-progress message in English and German.
+
+
 ## 0.1.4 — 2026-09-11
 
 - Show pending switch state during commands, roll back on failure and serialize rapid clicks.

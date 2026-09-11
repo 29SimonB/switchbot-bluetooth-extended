@@ -1,6 +1,6 @@
-# Validation — 0.1.4
+# Validation — 0.1.5
 
-- 37 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
+- 41 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
   voluptuous and pytest. Home Assistant framework/Bluetooth APIs were stubbed;
   the advertisement parser and Switchbot device class were real.
 - Covered local and ESPHome-proxy discovery, passive advertisements with a
@@ -46,3 +46,6 @@ movement is not yet verified fixed on hardware.
 old coordinator data. Single/multiple-device, manual and encrypted flows covered.
 User-supplied brand images are preserved. Live UI timing remains to be verified
 on Home Assistant with the ESPHome proxy.
+
+0.1.5 adds pending-discovery collision tests for explicit setup, duplicate
+discovery and existing entries. HA framework behavior is simulated.

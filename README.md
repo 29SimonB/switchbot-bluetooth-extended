@@ -37,7 +37,7 @@ Repository and issue tracker: https://github.com/29SimonB/switchbot-bluetooth-ex
 
 ## Development status
 
-Version 0.1.4 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
+Version 0.1.5 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
 
 
 ## Version 0.1.1: discovery and ESPHome proxies
@@ -104,11 +104,11 @@ Install `requirements-test.txt` in a virtual environment and run `python -m pyte
 1. Push `main` to https://github.com/29SimonB/switchbot-bluetooth-extended.
 2. Check that the GitHub Actions checks pass.
 3. Update manifest version and CHANGELOG, run tests, then commit.
-4. Tag that commit, for example `git tag v0.1.4`, and push the tag.
+4. Tag that commit, for example `git tag v0.1.5`, and push the tag.
 5. GitHub Actions runs tests and Hassfest, checks tag/version consistency, builds
    an install ZIP and creates a **draft** GitHub Release. Review and publish it.
 
-`python scripts/build_release.py --tag v0.1.4` builds the same ZIP locally.
+`python scripts/build_release.py --tag v0.1.5` builds the same ZIP locally.
 The workflow requires GitHub Actions to be enabled. A private repository can
 use Git version control, but public distribution through HACS needs a public
 repository. No GitHub repository or release is created merely by downloading
