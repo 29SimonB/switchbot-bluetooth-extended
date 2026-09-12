@@ -1,51 +1,68 @@
-# Validation — 0.1.5
+# Validation
 
-- 41 isolated regression tests passed using Python 3.13, PySwitchbot 2.7.0,
-  voluptuous and pytest. Home Assistant framework/Bluetooth APIs were stubbed;
-  the advertisement parser and Switchbot device class were real.
-- Covered local and ESPHome-proxy discovery, passive advertisements with a
-  separate connectable route, passive-only rejection, empty-search fallback,
-  accepted/invalid MAC formats, duplicates, non-Bots, encrypted Bot passwords,
-  retry after proxy arrival, runtime device resolution and route changes,
-  manual setup without parseable advertisements, and failed basic-info reads.
-- Parsed all Python files and JSON files; checked translation-key parity.
-- Compared APIs, requirement pin and matchers against current upstream SwitchBot
-  source (links in README). This is source review, not a full Hassfest run.
-- ZIP integrity and root layout checked before delivery.
+## Automated checks
 
-Not run: full Home Assistant startup/config-flow test suite, Hassfest, or live
-BLE communication with a Bot and ESPHome proxy. The existing HACS minimum
-Home Assistant 2026.8.0 is retained, not independently certified.
+The `Checks` GitHub Actions workflow runs on pushes, pull requests and manual dispatch:
 
-## Run isolated tests
+- **Regression tests:** real PySwitchbot and voluptuous, with simulated Home
+  Assistant APIs. Covers discovery and proxy routes, manual MAC validation,
+  duplicate setup, passwords, reverse availability, command errors and pending UI state.
+- **Python compilation:** catches syntax errors in integration modules.
+- **Release build:** creates an install ZIP and verifies its integrity.
+- **Gitleaks:** scans fetched Git history and current files for recognizable secrets,
+  with redacted output. This does not detect all personal information.
+- **Hassfest:** checks Home Assistant integration metadata and conventions.
 
-In a disposable virtual environment install `PySwitchbot==2.7.0`, `voluptuous`
-and `pytest`, then run `python -m pytest tests`. Run these tests separately from
-Home Assistant's own test suite because they substitute HA modules.
+The tag-triggered release workflow repeats regression, compilation, build and Hassfest checks and requires its tag to
+match the manifest version before creating a draft release.
 
-## Live acceptance check
+## Run locally
 
-1. Replace the integration folder and restart HA; verify version 0.1.2 in logs.
-2. Leave the Bluetooth integration and ESPHome proxy enabled. Open Extended,
-   choose Search for Bots and verify the Bot appears. Confirm once.
-3. Alternatively enter the Bot MAC manually. Verify invalid addresses and
-   passive-only/unreachable devices show an error and allow retry.
-4. Verify battery/settings load and existing mode/hold/strength controls operate.
-   Avoid concurrent commands from the native integration during this test.
-5. Restart HA and check the entry/entities retain their identities.
+Use Python 3.13 in a virtual environment:
 
-Additional 0.1.2 checks: Reverse availability transitions and rejected writes
-in Press/missing/stale mode, plus allowed writes in Switch mode. Brand PNGs
-were generated, resized and visually inspected. GitHub workflows are prepared
-but have not run remotely; Hassfest has not run locally.
+```sh
+python3.13 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-test.txt
+python -m pytest tests -q
+python -m compileall -q custom_components
+python scripts/build_release.py
+```
 
-0.1.3 adds command-state and fresh-mode regression tests. Physical return
-movement is not yet verified fixed on hardware.
+Pass `--tag v<version>` to the build script to check tag/version consistency.
+Run these tests separately from Home Assistant's tests: they substitute HA modules.
+Hassfest is run by GitHub Actions, not by the commands above.
 
-0.1.4: pending UI state is tested for on/off success and failure with intermediate
-old coordinator data. Single/multiple-device, manual and encrypted flows covered.
-User-supplied brand images are preserved. Live UI timing remains to be verified
-on Home Assistant with the ESPHome proxy.
+## Evidence and limitations
 
-0.1.5 adds pending-discovery collision tests for explicit setup, duplicate
-discovery and existing entries. HA framework behavior is simulated.
+The 0.1.5 baseline had 41 passing isolated regression cases. GitHub regression
+and Hassfest jobs have passed, and the maintainer confirmed the live setup works
+with a Bot and ESPHome proxy. This is not certification of every HA/proxy version.
+
+The suite does **not** start a real Home Assistant instance or exercise real BLE
+hardware. Startup, unload, entity-registry behavior, long-running connection loss
+and simultaneous settings updates need broader integration testing. There is no
+coverage threshold. The secret-scan job is part of the Checks workflow.
+A passing Hassfest check is not a security audit.
+
+## Repository audit (2026-09-12)
+
+The 0.1.6 candidate passes 52 isolated regression cases on Python 3.13.
+The changed settings behavior still needs the hardware acceptance check below.
+
+Gitleaks 8.30.1 found no recognizable secrets in all eight existing commits or
+the current files. This is a scanner result, not proof of absence. Real example
+MAC addresses were replaced in current source/tests; historical versions still
+contain the old identifier; the maintainer chose to retain history. PNG text metadata was removed without changing pixels.
+Public project URLs and the GitHub codeowner remain intentionally.
+
+## Hardware acceptance after behavior changes
+
+1. Install the candidate release, restart HA and confirm the installed version.
+2. Test discovered setup and manual setup with the proxy enabled.
+3. Check on/off in Switch mode and press behavior in Press mode, including UI state.
+4. Change mode, reverse, strength and hold time; verify the device's resulting settings.
+5. Test an unreachable device and confirm an error rather than false success.
+6. Restart HA and check existing entries and entity IDs remain intact.
+7. Check app-originated changes after polling; avoid concurrent app and HA settings
+   writes until their interaction has been explicitly tested.

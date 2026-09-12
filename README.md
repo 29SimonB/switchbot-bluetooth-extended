@@ -1,123 +1,101 @@
 # SwitchBot Bluetooth Extended
 
-Experimental Home Assistant custom integration for **SwitchBot Bot / WoHand** over local Bluetooth only. No SwitchBot Hub and no SwitchBot Cloud are required.
+Control a **SwitchBot Bot (WoHand)** and its settings locally from Home Assistant.
+Uses Home Assistant's Bluetooth infrastructure, including ESPHome Bluetooth proxies.
+No SwitchBot account, cloud connection or SwitchBot Hub is required.
 
 ## Features
 
-- One Home Assistant device per physical Bot
-- Main Bot control with native Switch/Press-mode behavior
-- Press / Switch mode selector
-- Reverse on/off direction toggle
-- Press-hold time
-- Strength
-- Battery
-- Firmware
-- Bluetooth RSSI (disabled by default)
-- Bluetooth auto-discovery
+| Entity | Purpose |
+| --- | --- |
+| Bot | On/off in Switch mode; a press action in Press mode |
+| Mode | Select Press or Switch |
+| Reverse direction | Reverse on/off directions in Switch mode |
+| Press-hold time | Set hold duration in seconds |
+| Strength | Set strength as a percentage |
+| Battery / Firmware | Device diagnostics |
+| Bluetooth RSSI | Signal strength; disabled by default |
 
-## Installation (manual)
+Only Bot devices are supported. Custom Mode is not implemented.
+Reverse is unavailable in Press mode; Home Assistant may still display its row.
+In Press mode the main switch state is assumed, not a persistent physical on/off state.
 
-1. Copy `custom_components/switchbot_bluetooth_extended` into your Home Assistant `/config/custom_components/` directory.
-2. Restart Home Assistant.
-3. Remove/disable the same Bot from the built-in **SwitchBot Bluetooth** integration first, otherwise Home Assistant will have two integrations trying to represent/control the same physical device.
-4. Go to **Settings → Devices & services → Add integration → SwitchBot Bluetooth Extended**.
-5. Discovery starts immediately. Confirm a single discovered Bot, or select one when several are found. An empty search opens manual MAC entry; the device list also offers manual entry. Password-free Bots use a simple confirmation. Name and area assignment are handled by Home Assistant after setup.
+## Requirements
 
-## Notes
+- Home Assistant 2026.8.0 or newer, as declared in `hacs.json`.
+- A Bluetooth adapter or ESPHome Bluetooth proxy with active BLE connections enabled.
+- A Bot within Bluetooth range.
 
-This integration intentionally supports **SwitchBot Bot only**. It uses `PySwitchbot` for BLE communication and reads/writes the Bot's actual settings.
+The declared minimum is not a tested compatibility matrix. See [validation](VALIDATION.md).
 
-### Supported mode settings
+## Install with HACS
 
-`PySwitchbot 2.7.0` exposes Press/Switch mode, strength, inverse direction and hold duration. Custom Mode is not exposed by the public Bot API in that library, so it is deliberately not included yet rather than sending guessed BLE commands.
+1. In HACS, open **Custom repositories**, add
+   `https://github.com/29SimonB/switchbot-bluetooth-extended` and select **Integration**.
+2. Download **SwitchBot Bluetooth Extended** and restart Home Assistant.
+3. Open **Settings → Devices & services → Add integration** and select
+   **SwitchBot Bluetooth Extended**, or use its discovered Bot card.
+4. Confirm the Bot. Home Assistant then offers name and area assignment.
 
-## Publishing checklist
+Avoid configuring the same Bot for control through both this and the native
+SwitchBot integration. Keep Home Assistant Bluetooth and the ESPHome proxy enabled.
 
-Repository and issue tracker: https://github.com/29SimonB/switchbot-bluetooth-extended. Maintainer: @29SimonB.
+For updates, download the new release in HACS and restart Home Assistant.
+Existing Extended entries and entity IDs are preserved; do not remove them to update.
 
-## Development status
+### Manual installation
 
-Version 0.1.5 is a test build. Test on a spare/non-critical Bot first and review Home Assistant logs for `switchbot_bluetooth_extended` if setup fails.
+From the release ZIP, copy only `custom_components/switchbot_bluetooth_extended`
+to `/config/custom_components/`, then restart Home Assistant and configure it above.
+The manifest must be at
+`/config/custom_components/switchbot_bluetooth_extended/manifest.json`.
+The repository's outer `custom_components` folder belongs in the repository;
+HACS installs the integration folder into the correct location.
 
+## Setup and troubleshooting
 
-## Version 0.1.1: discovery and ESPHome proxies
+Discovery starts automatically. A single Bot opens confirmation; several Bots
+open a selection list. When none are found, manual MAC entry opens. The device
+list also provides manual entry.
 
-The ZIP contains `custom_components/` directly at its root. Replace the existing
-`/config/custom_components/switchbot_bluetooth_extended/` folder with the folder
-from this archive, then restart Home Assistant. Existing Extended entries and
-unique IDs are preserved. Do not nest a second `custom_components` folder inside
-that directory. The Bluetooth integration and ESPHome proxy remain installed.
+Manual input accepts colon-separated, hyphen-separated or compact addresses,
+for example `02:00:00:00:00:01` (a fictional address). A connectable route must
+still be known to Home Assistant. Manual entry cannot reach an offline proxy.
+Check active proxy connections, range and incoming advertisements, then retry.
 
-Discovery requests an active scan through Home Assistant, parses both shared
-advertisement caches with PySwitchbot, and resolves connection availability using
-`async_ble_device_from_address(..., connectable=True)`. No adapter/interface is
-selected and no standalone scanner is created. Seeing an advertisement alone does
-not imply that a proxy supports active BLE connections.
+A password is requested for recognized password-protected Bots, or optionally
+when a manually entered device cannot be identified from advertisements.
+Use the **Bot's device password** if you set one, not your account password.
+Setup does not move the motor to test authentication.
 
-Manual setup accepts colon-separated, hyphen-separated or compact BLE MACs,
-normalizes them and checks for duplicate Extended entries. It accepts an address
-whose model could not be parsed, but rejects a known non-Bot. A connectable device
-must still be known to Home Assistant; manual input cannot bypass an offline or
-passive-only proxy. Check the proxy's `bluetooth_proxy` configuration, active
-connections and range if the form reports no route. Retry after advertisements
-arrive. An optional Bot password is supported; recognized password-protected Bots
-require it. Configuration does not press the Bot to test a password.
+Commands update the UI while running and report failures. Settings and changes
+made outside Home Assistant are polled every 15 minutes, so app changes may take
+time to appear. Bluetooth communication can also add command latency.
 
-## Compatibility and validation
+The supplied icon files are in the integration's `brand/` directory. Restart
+Home Assistant and refresh the browser after updating. HACS's repository-list
+icon is a separate display path; a working HA integration icon does not prove
+that HACS will display it. An absent HACS icon does not affect device control.
+This is an unofficial integration, not affiliated with SwitchBot.
 
-Compared on 2026-09-10 with the upstream Home Assistant `dev` SwitchBot config
-flow, manifest and setup code. Uses the same pinned `PySwitchbot==2.7.0`, keeps
-config-entry version 1 and the separate `switchbot_bluetooth_extended` domain.
-The polling coordinator is classified as `local_polling`. This package is a test
-build, not a claim of compatibility with every Home Assistant release.
-
-Sources:
-- https://github.com/home-assistant/core/blob/dev/homeassistant/components/switchbot/config_flow.py
-- https://github.com/home-assistant/core/blob/dev/homeassistant/components/switchbot/manifest.json
-- https://github.com/home-assistant/core/blob/dev/homeassistant/components/switchbot/__init__.py
-
-See `VALIDATION.md` for checks and limitations. A live Home Assistant/ESPHome/Bot
-hardware test is still required.
-
-
-## Reverse direction
-
-Reverse only affects Switch mode. In Press mode (or when data is unavailable),
-the entity is unavailable and writes are rejected. It becomes usable again when
-Switch mode is reported. Home Assistant's device page can still show its row;
-this integration does not change the user's entity visibility preferences or
-remove/recreate entities on mode changes. A conditional dashboard card can hide
-that row entirely in Press mode.
-
-## Branding
-
-The maintainer-provided S/plus icon is bundled in the integration's `brand/`
-directory, supported since Home Assistant 2026.3. It is not an official SwitchBot
-logo. After upgrading, restart HA and refresh the browser if the old placeholder
-is cached. Brand files are included in every install ZIP.
+Before posting logs, remove device addresses and other identifying information.
+An optional Bot password is stored in Home Assistant's config entry; do not share
+that storage file. See [security and privacy](SECURITY.md).
 
 ## Development and releases
 
-This folder is a Git repository on `main`, with the 0.1.1 baseline tagged.
-Install `requirements-test.txt` in a virtual environment and run `python -m pytest tests -q`. Tests simulate HA; they are not live hardware tests.
+See [validation and test instructions](VALIDATION.md) for automated checks,
+coverage limits and manual acceptance checks.
 
-1. Push `main` to https://github.com/29SimonB/switchbot-bluetooth-extended.
-2. Check that the GitHub Actions checks pass.
-3. Update manifest version and CHANGELOG, run tests, then commit.
-4. Tag that commit, for example `git tag v0.1.5`, and push the tag.
-5. GitHub Actions runs tests and Hassfest, checks tag/version consistency, builds
-   an install ZIP and creates a **draft** GitHub Release. Review and publish it.
+1. Update the manifest version and [changelog](CHANGELOG.md) together.
+2. Run tests and build the ZIP; commit and push, then check GitHub Actions.
+3. Tag the checked commit `v<manifest version>` and push the tag.
+4. The release workflow repeats validation, builds the install ZIP and creates
+   a **draft release**. Review the draft and publish it for users.
 
-`python scripts/build_release.py --tag v0.1.5` builds the same ZIP locally.
-The workflow requires GitHub Actions to be enabled. A private repository can
-use Git version control, but public distribution through HACS needs a public
-repository. No GitHub repository or release is created merely by downloading
-this folder. A HACS default-list submission is not included.
+The integration keeps its own `switchbot_bluetooth_extended` domain and uses
+`PySwitchbot==2.7.0`. Discovery was compared with the native Home Assistant
+[SwitchBot config flow](https://github.com/home-assistant/core/blob/dev/homeassistant/components/switchbot/config_flow.py).
 
-## State updates in 0.1.4
-
-The switch publishes a provisional requested state while a command runs.
-A failed command restores the previous displayed state and reports the error.
-Successful commands publish PySwitchbot state without a redundant refresh.
-Rapid clicks are serialized. No extra movement command is sent to stabilize
-the UI. Changes made outside HA still use the existing polling interval.
+Report reproducible problems in the repository's
+[issue tracker](https://github.com/29SimonB/switchbot-bluetooth-extended/issues).

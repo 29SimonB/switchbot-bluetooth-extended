@@ -98,7 +98,7 @@ package = module('custom_components.switchbot_bluetooth_extended')
 package.__path__ = [str(ROOT/'custom_components/switchbot_bluetooth_extended')]
 flowmod = importlib.import_module(package.__name__ + '.config_flow')
 coordmod = importlib.import_module(package.__name__ + '.coordinator')
-ADDRESS = 'EC:6F:03:C6:38:19'
+ADDRESS = '02:00:00:00:00:01'
 
 
 def info(payload=b'H\x90\xd9', connectable=True, address=ADDRESS, source='esphome-proxy'):
@@ -142,8 +142,8 @@ def test_discovery_routes(env, source):
     assert result['data_schema']({}) == {}
     bt.async_request_active_scan.assert_awaited_once_with(h)
     assert run(f.async_step_select_device({'address': ADDRESS}))['step_id'] == 'confirm'
-    assert run(f.async_step_confirm({}))['data'] == {'address': ADDRESS, 'name': 'Bot 3819'}
-    assert f.unique_id == 'ec6f03c63819'
+    assert run(f.async_step_confirm({}))['data'] == {'address': ADDRESS, 'name': 'Bot 0001'}
+    assert f.unique_id == '020000000001'
 
 
 def test_passive_advertisement_other_connectable_route(env):
@@ -169,7 +169,7 @@ def test_empty_search_fallback_and_menu(env):
     assert run(f.async_step_user())['step_id'] == 'manual'
 
 
-@pytest.mark.parametrize('address', [' ec:6f:03:c6:38:19 ', 'ec-6f-03-c6-38-19', 'ec6f03c63819'])
+@pytest.mark.parametrize('address', [' 02:00:00:00:00:01 ', '02-00-00-00-00-01', '020000000001'])
 def test_manual_normalization_without_parsed_advertisement(env, address):
     h, f = env
     h.routes[ADDRESS] = info().device
@@ -177,7 +177,7 @@ def test_manual_normalization_without_parsed_advertisement(env, address):
     assert run(f.async_step_confirm({}))['data']['address'] == ADDRESS
 
 
-@pytest.mark.parametrize('address', ['', 'nope', 'EC:6F:03:C6:38', 'EC:6F-03:C6:38:19', 'GG:6F:03:C6:38:19'])
+@pytest.mark.parametrize('address', ['', 'nope', '02:00:00:00:00', '02:00-00:00:00:01', 'GG:00:00:00:00:01'])
 def test_invalid_address(env, address):
     h, f = env
     assert run(f.async_step_manual({'address': address}))['errors'] == {'address': 'invalid_address'}
@@ -188,7 +188,7 @@ def test_duplicate_manual_and_discovery(env):
     h, f = env
     adv = info()
     register(h, adv)
-    h.ids.add('ec6f03c63819')
+    h.ids.add('020000000001')
     with pytest.raises(Abort, match='already_configured'):
         run(f.async_step_manual({'address': ADDRESS}))
     with pytest.raises(Abort, match='already_configured'):
@@ -257,7 +257,7 @@ def test_coordinator_read_with_real_parser(env, monkeypatch):
 def test_metadata_translation_keys():
     p=ROOT/'custom_components/switchbot_bluetooth_extended'
     m=json.loads((p/'manifest.json').read_text())
-    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.5'
+    assert m['domain']=='switchbot_bluetooth_extended' and m['version']=='0.1.6'
     assert m['requirements']==['PySwitchbot==2.7.0'] and m['config_flow'] is True
     def keys(d, prefix=''):
         return {prefix+k for k in d} | set().union(*(keys(v,prefix+k+'.') for k,v in d.items() if isinstance(v,dict)))
@@ -283,7 +283,8 @@ def test_reverse_writes_only_in_switch_mode(env, monkeypatch):
         register(h, info())
         c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={'address': ADDRESS}, title='Bot'))
         c.last_update_success = True
-        write = AsyncMock()
+        monkeypatch.setattr(switchbot.Switchbot, "get_basic_info", AsyncMock(return_value={"switchMode": True, "strength": 77, "inverseDirection": False}))
+        write = AsyncMock(return_value=True)
         monkeypatch.setattr(switchbot.Switchbot, 'set_switch_mode', write)
         c.async_refresh_after_command = AsyncMock()
         for data in (None, {}, {'switchMode': False}):
@@ -431,7 +432,7 @@ def test_multiple_bots_and_manual_choice(env):
 def test_explicit_setup_with_existing_discovery(env, manual):
     h, f = env
     register(h, info())
-    h.pending_ids = {'ec6f03c63819'}
+    h.pending_ids = {'020000000001'}
     result = run(f.async_step_manual({'address': ADDRESS}) if manual else f.async_step_user())
     assert result['step_id'] == 'confirm'
     assert run(f.async_step_confirm({}))['type'] == 'create_entry'
@@ -440,7 +441,7 @@ def test_explicit_setup_with_existing_discovery(env, manual):
 def test_duplicate_discovery_still_aborts(env):
     h, f = env
     register(h, info())
-    h.pending_ids = {'ec6f03c63819'}
+    h.pending_ids = {'020000000001'}
     with pytest.raises(Abort, match='already_in_progress'):
         run(f.async_step_bluetooth(info()))
 
@@ -448,6 +449,58 @@ def test_duplicate_discovery_still_aborts(env):
 def test_existing_entry_still_blocks_explicit_setup(env):
     h, f = env
     register(h, info())
-    h.ids = h.pending_ids = {'ec6f03c63819'}
+    h.ids = h.pending_ids = {'020000000001'}
     with pytest.raises(Abort, match='already_configured'):
         run(f.async_step_manual({'address': ADDRESS}))
+
+
+@pytest.mark.parametrize("method,value,write_method", [
+    ("async_set_mode", True, "set_switch_mode"),
+    ("async_set_strength", 50, "set_switch_mode"),
+    ("async_set_inverse", True, "set_switch_mode"),
+    ("async_set_hold_seconds", 3, "set_long_press"),
+])
+def test_settings_failure_is_reported(env, monkeypatch, method, value, write_method):
+    async def scenario():
+        h, _ = env
+        register(h, info())
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={"address": ADDRESS}, title="Bot"))
+        c.data = {"switchMode": True, "strength": 100}
+        c.last_update_success = True
+        monkeypatch.setattr(switchbot.Switchbot, "get_basic_info", AsyncMock(return_value={"switchMode": True, "strength": 100, "inverseDirection": False}))
+        monkeypatch.setattr(switchbot.Switchbot, write_method, AsyncMock(return_value=False))
+        c.async_refresh_after_command = AsyncMock()
+        with pytest.raises(RuntimeError, match="rejected"):
+            await getattr(c, method)(value)
+        c.async_refresh_after_command.assert_not_awaited()
+    run(scenario())
+
+
+@pytest.mark.parametrize("basic", [None, {}, {"switchMode": True}])
+def test_settings_require_complete_read(env, monkeypatch, basic):
+    async def scenario():
+        h, _ = env
+        register(h, info())
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={"address": ADDRESS}, title="Bot"))
+        monkeypatch.setattr(switchbot.Switchbot, "get_basic_info", AsyncMock(return_value=basic))
+        write = AsyncMock(return_value=True)
+        monkeypatch.setattr(switchbot.Switchbot, "set_switch_mode", write)
+        with pytest.raises(RuntimeError, match="Cannot read"):
+            await c.async_set_strength(50)
+        write.assert_not_awaited()
+    run(scenario())
+
+
+def test_setting_change_preserves_fresh_device_settings(env, monkeypatch):
+    async def scenario():
+        h, _ = env
+        register(h, info())
+        c = coordmod.SwitchBotExtendedCoordinator(h, SimpleNamespace(data={"address": ADDRESS}, title="Bot"))
+        c.data = {"switchMode": False, "strength": 100, "inverseDirection": False}
+        monkeypatch.setattr(switchbot.Switchbot, "get_basic_info", AsyncMock(return_value={"switchMode": True, "strength": 70, "inverseDirection": True}))
+        write = AsyncMock(return_value=True)
+        monkeypatch.setattr(switchbot.Switchbot, "set_switch_mode", write)
+        c.async_refresh_after_command = AsyncMock()
+        await c.async_set_strength(50)
+        write.assert_awaited_once_with(switch_mode=True, strength=50, inverse=True)
+    run(scenario())

@@ -6,8 +6,8 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.13"
       - run: python -m pip install -r requirements-test.txt
@@ -17,5 +17,22 @@ jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: home-assistant/actions/hassfest@master
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install verified Gitleaks release
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -LfSs https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o gitleaks_8.30.1_linux_x64.tar.gz
+          curl -LfSs https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt -o checksums.txt
+          grep ' gitleaks_8.30.1_linux_x64.tar.gz$' checksums.txt | sha256sum --check --strict
+          tar -xzf gitleaks_8.30.1_linux_x64.tar.gz gitleaks
+      - name: Scan history and current files
+        run: |
+          "$RUNNER_TEMP/gitleaks" git . --redact --log-opts=--all
+          "$RUNNER_TEMP/gitleaks" dir . --redact

@@ -21,7 +21,7 @@
       },
       "manual": {
         "title": "Bot manuell hinzufügen",
-        "description": "Falls kein Bot angeboten wird, gib seine BLE-MAC ein (z. B. EC:6F:03:C6:38:19). Der Bot muss für Home Assistant über einen lokalen Adapter oder einen ESPHome-Proxy mit aktiven Bluetooth-Verbindungen erreichbar sein.",
+        "description": "Falls kein Bot angeboten wird, gib seine BLE-MAC ein (z. B. 02:00:00:00:00:01). Der Bot muss für Home Assistant über einen lokalen Adapter oder einen ESPHome-Proxy mit aktiven Bluetooth-Verbindungen erreichbar sein.",
         "data": {
           "address": "BLE-MAC-Adresse"
         }
@@ -41,7 +41,7 @@
       "already_in_progress": "Die Einrichtung für diesen Bot läuft bereits. Öffne den vorhandenen Eintrag unter „Entdeckt“."
     },
     "error": {
-      "invalid_address": "Ungültige BLE-MAC-Adresse. Beispiel: EC:6F:03:C6:38:19.",
+      "invalid_address": "Ungültige BLE-MAC-Adresse. Beispiel: 02:00:00:00:00:01.",
       "not_supported": "Diese Adresse gehört nicht zu einem SwitchBot Bot.",
       "not_connectable": "Home Assistant findet keinen verbindungsfähigen Bluetooth-Pfad. Prüfe Reichweite, Proxy-Verbindung und aktive Bluetooth-Verbindungen am ESPHome-Proxy und versuche es erneut."
     }

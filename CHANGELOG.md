@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.6 — Unreleased
+
+- Read current settings before changing mode, strength or reverse; serialize these writes.
+- Report rejected settings commands instead of silently treating them as successful.
+- Replace real example device identifiers with fictional test data in current files.
+- Reorganize installation, validation and privacy documentation.
+- Restrict release archives to integration source, brand assets and project documentation.
+- Remove PNG text metadata while preserving image pixels.
+- Update checkout and Python setup actions to current releases.
+- Add a Gitleaks history and current-file scan to CI.
+- Add regression checks for settings failures and archive contents.
+
 ## 0.1.5 — 2026-09-11
 
 - Allow explicit Bot selection while an automatic discovery flow exists, matching Core SwitchBot.

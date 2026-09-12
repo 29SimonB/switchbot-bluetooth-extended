@@ -1,6 +1,7 @@
 """Coordinator for SwitchBot Bluetooth Extended."""
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from datetime import timedelta
 import logging
@@ -23,6 +24,7 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Manage one local SwitchBot Bot."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self._settings_lock = asyncio.Lock()
         self.entry = entry
         self.address: str = entry.data[CONF_ADDRESS]
         self.device_name: str = entry.data.get(CONF_NAME, entry.title)
@@ -98,38 +100,46 @@ class SwitchBotExtendedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _setting(self, key: str, default: Any) -> Any:
         return (self.data or {}).get(key, default)
 
-    async def async_set_mode(self, switch_mode: bool) -> None:
-        device = self._ensure_device()
-        await device.set_switch_mode(
-            switch_mode=switch_mode,
-            strength=int(self._setting("strength", 100)),
-            inverse=bool(self._setting("inverseDirection", False)),
-        )
+    async def _async_write_settings(self, **changes: Any) -> None:
+        """Preserve current sibling settings instead of overwriting from cached data."""
+        async with self._settings_lock:
+            device = self._ensure_device()
+            basic = await device.get_basic_info()
+            if (
+                not basic
+                or not isinstance(basic.get("switchMode"), bool)
+                or not isinstance(basic.get("inverseDirection"), bool)
+                or type(basic.get("strength")) is not int
+            ):
+                raise HomeAssistantError("Cannot read Bot settings; no settings command sent")
+            if "inverse" in changes and not basic["switchMode"]:
+                raise HomeAssistantError("Reverse direction is only available in Switch mode")
+            settings = {
+                "switch_mode": basic["switchMode"],
+                "strength": basic["strength"],
+                "inverse": basic["inverseDirection"],
+            }
+            settings.update(changes)
+            if not await device.set_switch_mode(**settings):
+                raise HomeAssistantError("Bot rejected the settings command")
         await self.async_refresh_after_command()
 
+    async def async_set_mode(self, switch_mode: bool) -> None:
+        await self._async_write_settings(switch_mode=switch_mode)
+
     async def async_set_strength(self, strength: int) -> None:
-        device = self._ensure_device()
-        await device.set_switch_mode(
-            switch_mode=bool(self._setting("switchMode", False)),
-            strength=strength,
-            inverse=bool(self._setting("inverseDirection", False)),
-        )
-        await self.async_refresh_after_command()
+        await self._async_write_settings(strength=strength)
 
     async def async_set_inverse(self, inverse: bool) -> None:
         if not self.last_update_success or not self._setting("switchMode", False):
             raise HomeAssistantError("Reverse direction is only available in Switch mode")
-        device = self._ensure_device()
-        await device.set_switch_mode(
-            switch_mode=bool(self._setting("switchMode", False)),
-            strength=int(self._setting("strength", 100)),
-            inverse=inverse,
-        )
-        await self.async_refresh_after_command()
+        await self._async_write_settings(inverse=inverse)
 
     async def async_set_hold_seconds(self, seconds: int) -> None:
         device = self._ensure_device()
-        await device.set_long_press(duration=seconds)
+        success = await device.set_long_press(duration=seconds)
+        if not success:
+            raise HomeAssistantError("Bot rejected the settings command")
         await self.async_refresh_after_command()
 
     async def _async_control(self, turn_on: bool) -> None:
